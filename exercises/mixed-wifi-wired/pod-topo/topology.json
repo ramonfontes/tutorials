@@ -1,0 +1,35 @@
+{
+    "stations": {
+        "sta1": {"ip": "10.0.1.1/24", "mac": "08:00:00:00:01:11",
+               "commands":["route add default gw 10.0.1.10 dev sta1-wlan0",
+                           "arp -i sta1-wlan0 -s 10.0.1.10 08:00:00:00:01:00"]},
+        "sta2": {"ip": "10.0.2.2/24", "mac": "08:00:00:00:02:22",
+               "commands":["route add default gw 10.0.2.20 dev sta2-wlan0",
+                           "arp -i sta2-wlan0 -s 10.0.2.20 08:00:00:00:02:00"]}
+    },
+    "hosts": {
+        "h3": {"ip": "10.0.3.3/24", "mac": "08:00:00:00:03:33",
+               "commands":["route add default gw 10.0.3.30 dev eth0",
+                           "arp -i eth0 -s 10.0.3.30 08:00:00:00:03:00"]}
+    },
+    "aps": {
+        "ap1": { "runtime_json" : "pod-topo/ap1-runtime.json",
+                 "grpc_port" : "50052",
+                 "device_id" : 1,
+                 "thrift-port" : 9091},
+        "ap2": { "runtime_json" : "pod-topo/ap2-runtime.json",
+                 "grpc_port" : "50053",
+                 "device_id" : 2,
+                 "thrift-port" : 9092}
+    },
+    "switches": {
+        "s3": { "runtime_json" : "pod-topo/s3-runtime.json",
+                "grpc_port" : "50051",
+                "device_id" : 0,
+                "thrift-port" : 9090}
+    },
+    "links": [
+        ["sta1", "ap1-p1"], ["sta2", "ap2-p1"], ["h3", "s3-p1"],
+        ["ap1-p2", "s3-p2"], ["ap2-p2", "s3-p3"]
+    ]
+}
