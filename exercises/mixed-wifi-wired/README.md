@@ -15,7 +15,7 @@ the control plane rules, so you only need to implement the data plane
 logic of your P4 program.
 
 We will use the following topology for this exercise:
-![siple-topology](./pod-topo/pod-topo.png)
+![siple-topology](./topo/pod-topo.png)
 
 Our P4 program will be written for the V1Model architecture implemented
 on P4.org's bmv2 software switch. The architecture file for the V1Model
