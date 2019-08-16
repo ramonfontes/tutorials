@@ -169,14 +169,8 @@ control MyIngress(inout headers hdr,
 
     apply {
         if (hdr.ipv4.isValid()) {
-            /*isrssi = 0;*/ // default
-            /*if (p4wifi_exact.apply().hit) {*/
-            /*    if (isrssi==1){*/
-            /*        drop();*/
-            /*    }*/
-            /*}*/
-            if (hdr.p4wifi.rssi < 60){
-                ipv4_lpm.apply();
+            if (hdr.p4wifi.rssi < 100){
+                
             }
             else{
                 drop();

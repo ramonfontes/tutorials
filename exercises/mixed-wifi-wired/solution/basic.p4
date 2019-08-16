@@ -3,6 +3,7 @@
 #include <v1model.p4>
 
 const bit<16> TYPE_IPV4 = 0x800;
+const bit<8> TCP_TYPE = 0x06;
 
 /*************************************************************************
 *********************** H E A D E R S  ***********************************
@@ -33,6 +34,28 @@ header ipv4_t {
     ip4Addr_t dstAddr;
 }
 
+header p4wifi_t {
+    bit<56>    newdata;
+    bit<8>     rssi;
+}
+
+header tcp_t {
+    bit<16> srcPort;
+    bit<16> dstPort;
+    bit<32> seqNo;
+    bit<32> ackNo;
+    bit<4>  dataOffset;
+    bit<3>  res;
+    bit<3>  flags_1;
+    bit<3>  flags_2;
+    bit<3>  flags_3;
+    bit<16> window;
+    bit<16> checksum;
+    bit<16> urgentPtr;
+    //bit<96> options;
+    //bit<40> payload;
+}
+
 struct metadata {
     /* empty */
 }
@@ -40,6 +63,8 @@ struct metadata {
 struct headers {
     ethernet_t   ethernet;
     ipv4_t       ipv4;
+    p4wifi_t     p4wifi;
+    tcp_t        tcp;
 }
 
 /*************************************************************************
@@ -65,6 +90,19 @@ parser MyParser(packet_in packet,
 
     state parse_ipv4 {
         packet.extract(hdr.ipv4);
+        transition select(hdr.ipv4.protocol) {
+            TCP_TYPE : parse_tcp;
+            default : accept;
+        }
+    }
+
+    state parse_tcp {
+        packet.extract(hdr.tcp);
+        transition parse_wifi;
+    }
+
+    state parse_wifi {
+        packet.extract(hdr.p4wifi);
         transition accept;
     }
 
@@ -74,7 +112,7 @@ parser MyParser(packet_in packet,
 ************   C H E C K S U M    V E R I F I C A T I O N   *************
 *************************************************************************/
 
-control MyVerifyChecksum(inout headers hdr, inout metadata meta) {   
+control MyVerifyChecksum(inout headers hdr, inout metadata meta) {
     apply {  }
 }
 
@@ -86,17 +124,36 @@ control MyVerifyChecksum(inout headers hdr, inout metadata meta) {
 control MyIngress(inout headers hdr,
                   inout metadata meta,
                   inout standard_metadata_t standard_metadata) {
+
+    bit<1> isrssi;
+
     action drop() {
         mark_to_drop(standard_metadata);
     }
-    
+
     action ipv4_forward(macAddr_t dstAddr, egressSpec_t port) {
         standard_metadata.egress_spec = port;
         hdr.ethernet.srcAddr = hdr.ethernet.dstAddr;
         hdr.ethernet.dstAddr = dstAddr;
         hdr.ipv4.ttl = hdr.ipv4.ttl - 1;
     }
-    
+
+    action set_rssi(bit<1> is_rssi) {
+        isrssi = is_rssi;
+    }
+
+    table p4wifi_exact {
+        key = {
+            hdr.p4wifi.rssi: exact;
+        }
+        actions = {
+            set_rssi;
+            NoAction;
+        }
+        size = 1024;
+        default_action = NoAction();
+    }
+
     table ipv4_lpm {
         key = {
             hdr.ipv4.dstAddr: lpm;
@@ -109,10 +166,21 @@ control MyIngress(inout headers hdr,
         size = 1024;
         default_action = drop();
     }
-    
+
     apply {
         if (hdr.ipv4.isValid()) {
-            ipv4_lpm.apply();
+            /*isrssi = 0;*/ // default
+            /*if (p4wifi_exact.apply().hit) {*/
+            /*    if (isrssi==1){*/
+            /*        drop();*/
+            /*    }*/
+            /*}*/
+            if (hdr.p4wifi.rssi < 60){
+                ipv4_lpm.apply();
+            }
+            else{
+                drop();
+            }
         }
     }
 }
@@ -159,6 +227,8 @@ control MyDeparser(packet_out packet, in headers hdr) {
     apply {
         packet.emit(hdr.ethernet);
         packet.emit(hdr.ipv4);
+        packet.emit(hdr.tcp);
+        packet.emit(hdr.p4wifi);
     }
 }
 
