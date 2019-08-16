@@ -91,6 +91,9 @@ control MyVerifyChecksum(inout headers hdr, inout metadata meta) {
 control MyIngress(inout headers hdr,
                   inout metadata meta,
                   inout standard_metadata_t standard_metadata) {
+
+    bit<1> isrssi;
+
     action drop() {
         mark_to_drop(standard_metadata);
     }
@@ -102,17 +105,20 @@ control MyIngress(inout headers hdr,
         hdr.ipv4.ttl = hdr.ipv4.ttl - 1;
     }
 
-    table p4wifi_lpm {
+    action set_rssi(bit<1> is_rssi) {
+        isrssi = is_rssi;
+    }
+
+    table p4wifi_exact {
         key = {
             hdr.p4wifi.rssi: exact;
         }
         actions = {
-            ipv4_forward;
-            drop;
+            set_rssi;
             NoAction;
         }
         size = 1024;
-        default_action = drop();
+        default_action = NoAction();
     }
 
     table ipv4_lpm {
@@ -131,9 +137,15 @@ control MyIngress(inout headers hdr,
     apply {
         if (hdr.ipv4.isValid()) {
             ipv4_lpm.apply();
-            p4wifi_lpm.apply();
+            isrssi = 0; // default
+                if (p4wifi_exact.apply().hit) {
+                    if (isrssi==1){
+                        drop();
+                    }
+                }
+            }
         }
-    }
+
 }
 
 /*************************************************************************
