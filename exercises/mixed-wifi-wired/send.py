@@ -6,16 +6,25 @@ from scapy.all import sendp, get_if_list, get_if_hwaddr, sniff
 from scapy.all import Dot11
 from scapy.all import Ether, IP, UDP, TCP
 
+from scapy.all import sendp, send, srp1
+from scapy.all import Packet, hexdump
+from scapy.all import StrFixedLenField, XByteField, IntField, LongField
+from scapy.all import bind_layers
+
+
+class P4wifi(Packet):
+    name = "P4wifi"
+    fields_desc = [ LongField("rssi", 0)]
+
+bind_layers(Ether, P4wifi, type=0x1234)
+
+class NumParseError(Exception):
+    pass
+
+class OpParseError(Exception):
+    pass
+
 def get_if():
-    ifs=get_if_list()
-    iface=None # "h1-eth0"
-    for i in get_if_list():
-        if "wlan0" in i:
-            iface=i
-            break;
-    if not iface:
-        print "Cannot find wlan0 interface"
-        exit(1)
     iface = 'sta1-wlan0'
     return iface
 
@@ -23,7 +32,6 @@ def pkt_callback(pkt):
 
     if pkt.haslayer(Dot11):
 
-        ssid = None
         if pkt.type == 0 and pkt.subtype == 8:
             ssid = pkt.info
         #if len(sys.argv)<3:
@@ -38,10 +46,16 @@ def pkt_callback(pkt):
         #addr = socket.gethostbyname(sys.argv[1])
         addr = "10.0.3.3"
         iface = get_if()
-        print "sending on interface %s to %s" % (iface, str(addr))
-        pktt = Ether(src=get_if_hwaddr(iface), dst='ff:ff:ff:ff:ff:ff')
-        pkt = pktt / IP(dst=addr) / TCP(dport=1234, sport=random.randint(49152,65535)) / pkt
-        pkt.show2()
+
+        pkt = Ether(src=get_if_hwaddr(iface), dst='ff:ff:ff:ff:ff:ff')
+        pkt = pkt / IP(dst=addr) / \
+              TCP(dport=1234, sport=random.randint(49152, 65535)) \
+              / P4wifi(rssi=abs(rssi))
+
+        pkt = pkt / ' '
+
+        pkt.show()
         sendp(pkt, iface=iface, verbose=False)
+
 
 sniff(iface="mon0", prn=pkt_callback, store=0)

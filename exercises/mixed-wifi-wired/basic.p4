@@ -18,28 +18,6 @@ header ethernet_t {
     bit<16>   etherType;
 }
 
-header wifi_t {
-    bit<2>     version;
-    bit<2>     type;
-    bit<4>     subtype;
-    bit<1>     tods;
-    bit<1>     fromds;
-    bit<1>     flag;
-    bit<1>     retry;
-    bit<1>     powermgmt;
-    bit<1>     moredata;
-    bit<1>     wep;
-    bit<1>     order;
-    bit<16>    duration;
-    bit<48>    addr1;
-    bit<48>    addr2;
-    bit<48>    addr3;
-    bit<16>    frmcontrol;
-    bit<48>    addr4;
-    bit<18496> data;
-    bit<32>    fcs;
-}
-
 header ipv4_t {
     bit<4>    version;
     bit<4>    ihl;
@@ -55,6 +33,10 @@ header ipv4_t {
     ip4Addr_t dstAddr;
 }
 
+header p4wifi_t {
+    bit<32>     rssi;
+}
+
 struct metadata {
     /* empty */
 }
@@ -62,7 +44,7 @@ struct metadata {
 struct headers {
     ethernet_t   ethernet;
     ipv4_t       ipv4;
-    wifi_t       wifi;
+    p4wifi_t     p4wifi;
 }
 
 /*************************************************************************
@@ -84,11 +66,6 @@ parser MyParser(packet_in packet,
             TYPE_IPV4: parse_ipv4;
             default: accept;
         }
-    }
-
-    state parse_wifi {
-        packet.extract(hdr.wifi);
-        transition accept;
     }
 
     state parse_ipv4 {
@@ -125,6 +102,19 @@ control MyIngress(inout headers hdr,
         hdr.ipv4.ttl = hdr.ipv4.ttl - 1;
     }
 
+    table p4wifi_lpm {
+        key = {
+            hdr.p4wifi.rssi: exact;
+        }
+        actions = {
+            ipv4_forward;
+            drop;
+            NoAction;
+        }
+        size = 1024;
+        default_action = drop();
+    }
+
     table ipv4_lpm {
         key = {
             hdr.ipv4.dstAddr: lpm;
@@ -141,6 +131,7 @@ control MyIngress(inout headers hdr,
     apply {
         if (hdr.ipv4.isValid()) {
             ipv4_lpm.apply();
+            p4wifi_lpm.apply();
         }
     }
 }
@@ -187,7 +178,7 @@ control MyDeparser(packet_out packet, in headers hdr) {
     apply {
         packet.emit(hdr.ethernet);
         packet.emit(hdr.ipv4);
-        packet.emit(hdr.wifi);
+        packet.emit(hdr.p4wifi);
     }
 }
 
