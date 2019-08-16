@@ -73,6 +73,11 @@ parser MyParser(packet_in packet,
         transition accept;
     }
 
+    state parse_wifi {
+        packet.extract(hdr.p4wifi);
+        transition accept;
+    }
+
 }
 
 /*************************************************************************
