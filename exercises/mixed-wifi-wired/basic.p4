@@ -168,12 +168,14 @@ control MyIngress(inout headers hdr,
 
     apply {
         if (hdr.ipv4.isValid()) {
-            ipv4_lpm.apply();
             isrssi = 0; // default
                 if (p4wifi_exact.apply().hit) {
                     if (isrssi==1){
                         drop();
                     }
+                }
+                else{
+                    ipv4_lpm.apply();
                 }
             }
         }
@@ -222,6 +224,7 @@ control MyDeparser(packet_out packet, in headers hdr) {
     apply {
         packet.emit(hdr.ethernet);
         packet.emit(hdr.ipv4);
+        packet.emit(hdr.tcp);
         packet.emit(hdr.p4wifi);
     }
 }
