@@ -28,6 +28,9 @@ from mn_wifi.net import Mininet_wifi
 from mn_wifi.topo import Topo_WiFi
 from mn_wifi.cli import CLI_wifi
 
+from mn_wifi.link import wmediumd
+from mn_wifi.wmediumdConnector import interference
+
 from p4runtime_ap import P4RuntimeAP
 from p4runtime_switch import P4RuntimeSwitch
 import p4runtime_lib.simple_controller
@@ -197,7 +200,7 @@ class ExerciseTopo(Topo_WiFi):
                 if int(ap_name[2:]) == 1:
                     x, y = 100, 80
                 elif int(ap_name[2:]) == 2:
-                    x, y = 300, 80
+                    x, y = 340, 80
             if link['node1'][0] == 'h':
                 self.addHost(sta_name, ip=sta_ip + '/24', mac=sta_mac)
             else:
@@ -376,9 +379,9 @@ class ExerciseRunner:
                                 host=P4Host,
                                 switch=defaultSwitchClass,
                                 accessPoint=defaultapClass,
-                                controller=None
-                                # link=wmediumd,
-                                # wmediumd_mode=interference
+                                controller=None,
+                                link=wmediumd,
+                                wmediumd_mode=interference
                                 #plot=True
                                 )
 

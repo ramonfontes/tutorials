@@ -41,16 +41,6 @@
         "dstAddr": "08:00:00:00:03:33",
         "port": 1
       }
-    },
-    {
-      "table": "MyIngress.p4wifi_exact",
-      "match": {
-        "hdr.p4wifi.rssi": 36
-      },
-      "action_name": "MyIngress.set_rssi",
-      "action_params": {
-        "is_rssi": 1
-      }
     }
   ]
 }

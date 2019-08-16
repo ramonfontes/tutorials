@@ -35,7 +35,8 @@ header ipv4_t {
 }
 
 header p4wifi_t {
-    bit<32>     rssi;
+    bit<56>    newdata;
+    bit<8>     rssi;
 }
 
 header tcp_t {
@@ -168,18 +169,20 @@ control MyIngress(inout headers hdr,
 
     apply {
         if (hdr.ipv4.isValid()) {
-            isrssi = 0; // default
-                if (p4wifi_exact.apply().hit) {
-                    if (isrssi==1){
-                        drop();
-                    }
-                }
-                else{
-                    ipv4_lpm.apply();
-                }
+            /*isrssi = 0;*/ // default
+            /*if (p4wifi_exact.apply().hit) {*/
+            /*    if (isrssi==1){*/
+            /*        drop();*/
+            /*    }*/
+            /*}*/
+            if (hdr.p4wifi.rssi < 60){
+                ipv4_lpm.apply();
+            }
+            else{
+                drop();
             }
         }
-
+    }
 }
 
 /*************************************************************************
