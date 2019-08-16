@@ -37,6 +37,23 @@ header p4wifi_t {
     bit<32>     rssi;
 }
 
+header tcp_t {
+    bit<16> srcPort;
+    bit<16> dstPort;
+    bit<32> seqNo;
+    bit<32> ackNo;
+    bit<4>  dataOffset;
+    bit<3>  res;
+    bit<3>  flags_1;
+    bit<3>  flags_2;
+    bit<3>  flags_3;
+    bit<16> window;
+    bit<16> checksum;
+    bit<16> urgentPtr;
+    //bit<96> options;
+    //bit<40> payload;
+}
+
 struct metadata {
     /* empty */
 }
@@ -45,6 +62,7 @@ struct headers {
     ethernet_t   ethernet;
     ipv4_t       ipv4;
     p4wifi_t     p4wifi;
+    tcp_t        tcp;
 }
 
 /*************************************************************************
@@ -70,7 +88,15 @@ parser MyParser(packet_in packet,
 
     state parse_ipv4 {
         packet.extract(hdr.ipv4);
-        transition accept;
+        transition select(hdr.ipv4.protocol) {
+            TCP_TYPE : parse_tcp;
+            default : accept;
+        }
+    }
+
+    state parse_tcp {
+        packet.extract(hdr.tcp);
+        transition parse_wifi;
     }
 
     state parse_wifi {
