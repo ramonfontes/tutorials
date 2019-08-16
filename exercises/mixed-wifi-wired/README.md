@@ -1,4 +1,4 @@
-# Implementing Basic Forwarding
+# Dropping packets based on RSSI
 
 ## Introduction
 
@@ -88,7 +88,7 @@ file `build/basic.p4.p4info.txt` after executing `make run`). Any changes in the
 program that add or rename tables, keys, or actions will need to be reflected in
 these `sX-runtime.json` files.
 
-## Step 2: Droping packets based on the RSSI
+## Step 2: Dropping packets based on RSSI
 
 The `basic.p4` file contains a skeleton P4 program with key pieces of
 logic replaced by `TODO` comments. Your implementation should follow
