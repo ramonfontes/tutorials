@@ -1,0 +1,31 @@
+{
+    "stations": {
+        "sta1": {"ip": "10.0.1.1/24", "mac": "08:00:00:00:01:11",
+               "commands":["route add default gw 10.0.1.10 dev sta1-wlan0",
+                           "arp -i sta1-wlan0 -s 10.0.1.10 08:00:00:00:01:00"]}
+    },
+    "hosts": {
+        "h2": {"ip": "10.0.2.2/24", "mac": "08:00:00:00:02:22",
+               "commands":["route add default gw 10.0.2.20 dev eth0",
+                           "arp -i eth0 -s 10.0.2.20 08:00:00:00:02:00"]}
+    },
+    "aps": {
+        "ap1": { "runtime_json" : "topo/ap1-runtime.json",
+                 "grpc_port" : "50052",
+                 "device_id" : 1,
+                 "thrift-port" : 9091},
+        "ap2": { "runtime_json" : "topo/ap2-runtime.json",
+                 "grpc_port" : "50053",
+                 "device_id" : 2,
+                 "thrift-port" : 9092}
+    },
+    "switches": {
+        "s3": { "runtime_json" : "topo/s3-runtime.json",
+                "grpc_port" : "50051",
+                "device_id" : 0,
+                "thrift-port" : 9090}
+    },
+    "links": [
+        ["h2", "s3-p1"], ["ap1-p2", "s3-p2"], ["ap2-p2", "s3-p3"]
+    ]
+}
