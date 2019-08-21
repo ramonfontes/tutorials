@@ -3,10 +3,10 @@
 ## Introduction
 
 The objective of this exercise is to write a P4 program that
-implements basic protocol for WiFi.
+implements basic protocol for WiFi in order to provide seamless handover.
 
 With this basic protocol, switch s3 must perform the following action: 
-drop packets from sta2 due to its RSSI.
+forward packets from sta1 to h2.
  
 Your switch will have a single table, which the control plane will
 populate with static rules. Each rule will map an IP address to the
