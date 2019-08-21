@@ -325,7 +325,7 @@ class ExerciseRunner:
         # wait for that to finish. Not sure how to do this better
         sleep(1)
 
-        makeTerm(self.net.stations[0], cmd="bash -c 'python send.py sta1;'")
+        makeTerm(self.net.aps[1], cmd="bash -c 'python send.py ap2;'")
         makeTerm(self.net.hosts[1], cmd="bash -c 'python receive.py;'")
         makeTerm(self.net.stations[0], cmd="bash -c 'ping 10.0.2.2;'")
 

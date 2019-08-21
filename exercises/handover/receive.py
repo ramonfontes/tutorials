@@ -11,11 +11,10 @@ def handle_pkt(pkt):
     if TCP in pkt and pkt[TCP].dport == 1234 and Raw in pkt:
         pkt = pkt.lastlayer()
         pktHex = hexlify(str(pkt))
-        if pktHex == '020000000200':
-            if os.path.exists('run-code.sh'):
-                print "handover to 02:00:00:00:02:00"
-                os.system("./run-code.sh")
-                os.system("rm run-code.sh")
+        bssid = pktHex[0:12]
+        mac = pktHex[12:23]
+        print "%s handover to %s" % (mac, bssid)
+        os.system("./run-code.sh")
     sys.stdout.flush()
 
 
