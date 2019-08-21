@@ -126,56 +126,15 @@ control MyIngress(inout headers hdr,
                   inout metadata meta,
                   inout standard_metadata_t standard_metadata) {
 
-    bit<1> isrssi=0;
-
     action drop() {
         mark_to_drop(standard_metadata);
     }
 
     action ipv4_forward(macAddr_t dstAddr, egressSpec_t port) {
-
-        macAddr_t mac;
-        macAddr_t bssid;
-        egressSpec_t port_;
-        mac = (macAddr_t)080000000100;
-        port_ = 1;
-        if (port==100){
-            bssid = hdr.p4wifi.bssid;
-            if (isrssi == 1){
-                port_ = 3;
-                mac = (macAddr_t)080000000100;
-            }
-            else{
-                port_ = 3;
-                mac = (macAddr_t)080000000200;
-            }
-            standard_metadata.egress_spec = port_;
-            hdr.ethernet.dstAddr = mac;
-            hdr.ethernet.srcAddr = hdr.ethernet.dstAddr;
-            hdr.ipv4.ttl = hdr.ipv4.ttl - 1;
-        }
-        else{
-            standard_metadata.egress_spec = port;
-            hdr.ethernet.dstAddr = dstAddr;
-            hdr.ethernet.srcAddr = hdr.ethernet.dstAddr;
-            hdr.ipv4.ttl = hdr.ipv4.ttl - 1;
-        }
-    }
-
-    action rewrite_mac(ingressSpec_t port) {
-        standard_metadata.egress_port = port;
-        isrssi = 1;
-    }
-
-    table send_frame {
-        key = {
-            standard_metadata.egress_port: exact;
-        }
-        actions = {
-            rewrite_mac;
-            drop;
-        }
-        size = 256;
+        standard_metadata.egress_spec = port;
+        hdr.ethernet.dstAddr = dstAddr;
+        hdr.ethernet.srcAddr = hdr.ethernet.dstAddr;
+        hdr.ipv4.ttl = hdr.ipv4.ttl - 1;
     }
 
     table ipv4_lpm {
@@ -194,7 +153,6 @@ control MyIngress(inout headers hdr,
     apply {
         if (hdr.ipv4.isValid()) {
             ipv4_lpm.apply();
-            send_frame.apply();
         }
     }
 }

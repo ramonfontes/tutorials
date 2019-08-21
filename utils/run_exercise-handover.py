@@ -22,6 +22,8 @@
 import os, json, subprocess, argparse
 from time import sleep
 
+from mininet.term import makeTerm
+
 from p4_mininet import P4AP, P4Station, P4Host, P4Switch
 
 from mn_wifi.net import Mininet_wifi
@@ -181,19 +183,30 @@ class ExerciseTopo(Topo_WiFi):
                 self.addAccessPoint(ap, log_file="%s/%s.log" % (log_dir, ap),
                                     position='%s,%s,0' % (x, y),
                                     grpc_port=grpc_port, device_id=device_id,
-                                    thrift_port=thrift_port, cls=apClass)
+                                    thrift_port=thrift_port, cls=apClass,
+                                    passwd='123456789a', encrypt='wpa2',
+                                    ieee80211r='yes', mobility_domain='a1b2'
+                                    )
 
         for sta in stations:
             sta_num = int(sta[3:])
             sta_ip = "10.0.%d.%d" % (sta_num, sta_num)
             sta_mac = '08:00:00:00:%02x:%s%s' % (sta_num, sta_num, sta_num)
-            self.addStation(str(sta), ip=sta_ip + '/24', mac=sta_mac)
+            self.addStation(str(sta), ip=sta_ip + '/24', mac=sta_mac,
+                            encrypt='wpa2',
+                            bgscan_threshold=-70,
+                            s_inverval=1,
+                            l_interval=2
+                            )
 
         for host in hosts:
             host_num = int(host[1:])
             host_ip = "10.0.%d.%d" % (host_num, host_num)
-            sta_mac = '08:00:00:00:%02x:%s%s' % (host_num, host_num, host_num)
-            self.addHost(str(host), ip=host_ip + '/24', mac=sta_mac)
+            host_mac = '08:00:00:00:%02x:%s%s' % (host_num, host_num, host_num)
+            if host_num == 3:
+                self.addHost(str(host), ip=host_ip + '/24', mac=host_mac, inNamespace=False)
+            else:
+                self.addHost(str(host), ip=host_ip + '/24', mac=host_mac)
             for switch in switches:
                 switch_name = str(switch)
                 self.addLink(host, str(switch_name))
@@ -312,15 +325,21 @@ class ExerciseRunner:
         # wait for that to finish. Not sure how to do this better
         sleep(1)
 
+        makeTerm(self.net.stations[0], cmd="bash -c 'python send.py sta1;'")
+        makeTerm(self.net.hosts[1], cmd="bash -c 'python receive.py;'")
+        makeTerm(self.net.stations[0], cmd="bash -c 'ping 10.0.2.2;'")
+
         self.do_net_cli()
         # stop right after the CLI is exited
+
+        os.system('pkill -f \"xterm -title\"')
         self.net.stop()
 
     def config_mobility(self):
         self.net.startMobility(time=0, repetitions=1)
         self.net.mobility(self.net.stations[0], 'start', time=5, position='100.0,280.0,0.0')
-        self.net.mobility(self.net.stations[0], 'stop', time=35, position='600.0,280.0,0.0')
-        self.net.stopMobility(time=35)
+        self.net.mobility(self.net.stations[0], 'stop', time=95, position='600.0,280.0,0.0')
+        self.net.stopMobility(time=95)
 
     def parse_links(self, unparsed_links):
         """ Given a list of links descriptions of the form [node1, node2, latency, bandwidth]

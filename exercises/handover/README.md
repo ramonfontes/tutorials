@@ -1,4 +1,4 @@
-# Dropping packets based on RSSI
+# Handover Scenario
 
 ## Introduction
 
@@ -15,7 +15,7 @@ the control plane rules, so you only need to implement the data plane
 logic of your P4 program.
 
 We will use the following topology for this exercise:
-![siple-topology](./topo/pod-topo.png)
+![siple-topology](./topo/topo.png)
 
 Our P4 program will be written for the V1Model architecture implemented
 on P4.org's bmv2 software switch. The architecture file for the V1Model
@@ -48,12 +48,8 @@ up a switch in Mininet to test its behavior.
    * configure all hosts with the commands listed in
    [topo/topology.json](./topo/topology.json)
 
-2. You should now see a Mininet-WiFi command prompt. Try to ping between
-   stations and host in the topology:
-   ```bash
-   mininet-wifi> sta1 ping h3
-   mininet-wifi> sta2 ping h3
-   ```
+2. You should now see a Mininet-WiFi command prompt as well as 3 terminals.
+
 3. Type `exit` to leave each xterm and the Mininet-WiFi command line.
    Then, to stop mininet-wifi:
    ```bash
@@ -88,7 +84,7 @@ file `build/basic.p4.p4info.txt` after executing `make run`). Any changes in the
 program that add or rename tables, keys, or actions will need to be reflected in
 these `sX-runtime.json` files.
 
-## Step 2: Dropping packets based on RSSI
+## Step 2: Handover Scenario
 
 The `basic.p4` file contains a skeleton P4 program with key pieces of
 logic replaced by `TODO` comments. Your implementation should follow

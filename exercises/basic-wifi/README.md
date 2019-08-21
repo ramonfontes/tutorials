@@ -55,7 +55,7 @@ up a switch in Mininet to test its behavior.
 2. You should now see a Mininet command prompt. Try to ping between
    hosts in the topology:
    ```bash
-   mininet> h1 ping h2
+   mininet> sta1 ping sta2
    mininet> pingall
    ```
 3. Type `exit` to leave each xterm and the Mininet command line.
