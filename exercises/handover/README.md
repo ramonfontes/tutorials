@@ -111,7 +111,7 @@ A complete `basic.p4` will contain the following components:
     > In general, a package also requires instances of checksum verification
     > and recomputation controls. These are not necessary for this tutorial
     > and are replaced with instantiations of empty controls.
-8. **TODO:** Verify and drop packets when the RSSI > 60
+8. **TODO:** add bssid into p4wifi_t header
 
 ## Step 3: Run your solution
 
@@ -127,12 +127,6 @@ that you implementation is correct?
 > Although the Python `scapy` library is outside the scope of this tutorial,
 > it can be used to generate packets for testing. The `send.py` file shows how
 > to use it.
-
-Other questions to consider:
- - How would you enhance your program to respond to ARP requests?
- - How would you enhance your program to support traceroute?
- - How would you enhance your program to support next hops?
- - Is this program enough to replace a router?  What's missing?
 
 ### Troubleshooting
 

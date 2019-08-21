@@ -10,6 +10,7 @@ const bit<8> TCP_TYPE = 0x06;
 *************************************************************************/
 
 typedef bit<9>  egressSpec_t;
+typedef bit<9>  ingressSpec_t;
 typedef bit<48> macAddr_t;
 typedef bit<32> ip4Addr_t;
 
@@ -36,7 +37,7 @@ header ipv4_t {
 
 header p4wifi_t {
     bit<56>    newdata;
-    bit<8>     rssi;
+    macAddr_t  bssid;
 }
 
 header tcp_t {
@@ -125,33 +126,15 @@ control MyIngress(inout headers hdr,
                   inout metadata meta,
                   inout standard_metadata_t standard_metadata) {
 
-    bit<1> isrssi;
-
     action drop() {
         mark_to_drop(standard_metadata);
     }
 
     action ipv4_forward(macAddr_t dstAddr, egressSpec_t port) {
         standard_metadata.egress_spec = port;
-        hdr.ethernet.srcAddr = hdr.ethernet.dstAddr;
         hdr.ethernet.dstAddr = dstAddr;
+        hdr.ethernet.srcAddr = hdr.ethernet.dstAddr;
         hdr.ipv4.ttl = hdr.ipv4.ttl - 1;
-    }
-
-    action set_rssi(bit<1> is_rssi) {
-        isrssi = is_rssi;
-    }
-
-    table p4wifi_exact {
-        key = {
-            hdr.p4wifi.rssi: exact;
-        }
-        actions = {
-            set_rssi;
-            NoAction;
-        }
-        size = 1024;
-        default_action = NoAction();
     }
 
     table ipv4_lpm {
@@ -169,18 +152,7 @@ control MyIngress(inout headers hdr,
 
     apply {
         if (hdr.ipv4.isValid()) {
-            /*isrssi = 0;*/ // default
-            /*if (p4wifi_exact.apply().hit) {*/
-            /*    if (isrssi==1){*/
-            /*        drop();*/
-            /*    }*/
-            /*}*/
-            if (hdr.p4wifi.rssi < 60){
-                ipv4_lpm.apply();
-            }
-            else{
-                drop();
-            }
+            ipv4_lpm.apply();
         }
     }
 }
