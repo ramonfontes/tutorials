@@ -13,14 +13,14 @@ def handle_pkt(pkt):
         pktHex = hexlify(str(pkt))
         bssid = pktHex[0:12]
         mac = pktHex[12:23]
-        print "%s handover to %s" % (mac, bssid)
+        print "%s handovers to %s" % (mac, bssid)
         os.system("./run-code.sh")
     sys.stdout.flush()
 
 
 def main():
-    ifaces = filter(lambda i: 'eth' in i, os.listdir('/sys/class/net/'))
-    iface = ifaces[3]
+    #ifaces = filter(lambda i: 'eth' in i, os.listdir('/sys/class/net/'))
+    iface = 'eth0'
     print "sniffing on %s" % iface
     sys.stdout.flush()
     sniff(iface = iface,

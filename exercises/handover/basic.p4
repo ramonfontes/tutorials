@@ -37,8 +37,6 @@ header ipv4_t {
 
 header p4wifi_t {
     bit<56>    newdata;
-    macAddr_t  bssid;
-    macAddr_t  mac;
 }
 
 header tcp_t {

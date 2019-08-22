@@ -43,7 +43,7 @@ def pkt_callback(pkt):
 
             addr = "10.0.3.3"
             iface = get_if(sys.argv[1])
-
+            print "Sending BSSID/MAC to %s" % addr
             pkt = Ether(src=get_if_hwaddr(iface), dst='ff:ff:ff:ff:ff:ff')
             pkt = pkt / IP(dst=addr) / \
                   TCP(dport=1234, sport=random.randint(49152, 65535)) \
