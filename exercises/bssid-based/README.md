@@ -1,12 +1,12 @@
-# Dropping packets based on RSSI
+# Dropping packets based on BSSID
 
 ## Introduction
 
 The objective of this exercise is to write a P4 program that
 implements basic protocol for WiFi.
 
-With this basic protocol, switch s3 must perform the following action: 
-drop packets from sta2 due to its RSSI.
+With this basic protocol, switch s4 must perform the following action:
+drop packets from ap2 due to its BSSID.
  
 Your switch will have a single table, which the control plane will
 populate with static rules. Each rule will map an IP address to the
@@ -15,7 +15,7 @@ the control plane rules, so you only need to implement the data plane
 logic of your P4 program.
 
 We will use the following topology for this exercise:
-![siple-topology](./topo/pod-topo.png)
+![siple-topology](./topo/topo.png)
 
 Our P4 program will be written for the V1Model architecture implemented
 on P4.org's bmv2 software switch. The architecture file for the V1Model
@@ -49,9 +49,12 @@ up a switch in Mininet to test its behavior.
    [topo/topology.json](./topo/topology.json)
 
 2. You should now see a Mininet-WiFi command prompt. Try to ping between
-   stations and host in the topology:
+   station s2 and host in the topology as well as change the position of sta2:
    ```bash
-   mininet-wifi> sta1 ping h3
+   mininet-wifi> sta2 ping h3
+   mininet-wifi> py sta2.setPosition('500,200,0')
+   mininet-wifi> sta2 ping h3
+   mininet-wifi> py sta2.setPosition('100,200,0')
    mininet-wifi> sta2 ping h3
    ```
 3. Type `exit` to leave each xterm and the Mininet-WiFi command line.
@@ -115,7 +118,7 @@ A complete `basic.p4` will contain the following components:
     > In general, a package also requires instances of checksum verification
     > and recomputation controls. These are not necessary for this tutorial
     > and are replaced with instantiations of empty controls.
-8. **TODO:** Verify and drop packets when the RSSI > 60
+8. **TODO:** Verify and drop packets when the BSSID == 020000000300
 
 ## Step 3: Run your solution
 

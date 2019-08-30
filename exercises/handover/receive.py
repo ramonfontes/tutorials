@@ -12,7 +12,7 @@ def handle_pkt(pkt):
         pkt = pkt.lastlayer()
         pktHex = hexlify(str(pkt))
         bssid = pktHex[0:12]
-        mac = pktHex[12:23]
+        mac = pktHex[12:24]
         print "%s handovers to %s" % (mac, bssid)
         os.system("./run-code.sh")
     sys.stdout.flush()

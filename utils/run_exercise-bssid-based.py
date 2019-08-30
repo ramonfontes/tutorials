@@ -24,6 +24,7 @@ from time import sleep
 
 from p4_mininet import P4AP, P4Station, P4Host, P4Switch
 
+from mininet.term import makeTerm
 from mn_wifi.net import Mininet_wifi
 from mn_wifi.topo import Topo_WiFi
 from mn_wifi.cli import CLI_wifi
@@ -161,7 +162,7 @@ class ExerciseTopo(Topo_WiFi):
                 if int(ap[2:]) == 1:
                     x, y = 100, 100
                 elif int(ap[2:]) == 2:
-                    x, y = 300, 100
+                    x, y = 500, 100
 
                 if 'device_id' in params:
                     device_id = params['device_id']
@@ -181,7 +182,10 @@ class ExerciseTopo(Topo_WiFi):
                 self.addAccessPoint(ap, log_file="%s/%s.log" % (log_dir, ap),
                                     position='%s,%s,0' % (x, y),
                                     grpc_port=grpc_port, device_id=device_id,
-                                    thrift_port=thrift_port, cls=apClass)
+                                    thrift_port=thrift_port, cls=apClass,
+                                    passwd='123456789a', encrypt='wpa2',
+                                    ieee80211r='yes', mobility_domain='a1b2'
+                                    )
 
         for link in sta_links:
 
@@ -200,11 +204,18 @@ class ExerciseTopo(Topo_WiFi):
                 if int(ap_name[2:]) == 1:
                     x, y = 100, 80
                 elif int(ap_name[2:]) == 2:
-                    x, y = 340, 80
+                    x, y = 600, 500
             if link['node1'][0] == 'h':
-                self.addHost(sta_name, ip=sta_ip + '/24', mac=sta_mac)
+                if sta_num == 4:
+                    self.addHost(sta_name, ip=sta_ip + '/24', mac=sta_mac, inNamespace=False)
+                else:
+                    self.addHost(sta_name, ip=sta_ip + '/24', mac=sta_mac)
             else:
                 self.addStation(sta_name, ip=sta_ip + '/24', mac=sta_mac,
+                                encrypt='wpa2',
+                                bgscan_threshold=-70,
+                                s_inverval=1,
+                                l_interval=2,
                                 position='%s,%s,0' % (x, y))
 
             self.addLink(sta_name, ap_name)
@@ -305,6 +316,7 @@ class ExerciseRunner:
         """
         # Initialize mininet with the topology specified by the config
         self.create_network()
+        self.net.plotGraph(max_x=700, max_y=700)
         self.net.start()
         sleep(1)
 
@@ -321,8 +333,14 @@ class ExerciseRunner:
         # wait for that to finish. Not sure how to do this better
         sleep(1)
 
+        makeTerm(self.net.aps[0], cmd="bash -c 'python send.py ap1;'")
+        makeTerm(self.net.aps[1], cmd="bash -c 'python send.py ap2;'")
+        makeTerm(self.net.hosts[1], cmd="bash -c 'python receive.py;'")
+
         self.do_net_cli()
         # stop right after the CLI is exited
+
+        os.system('pkill -f \"xterm -title\"')
         self.net.stop()
 
     def parse_links(self, unparsed_links):

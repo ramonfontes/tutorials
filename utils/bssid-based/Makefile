@@ -5,7 +5,7 @@ LOG_DIR = logs
 P4C = p4c-bm2-ss
 P4C_ARGS += --p4runtime-files $(BUILD_DIR)/$(basename $@).p4.p4info.txt
 
-RUN_SCRIPT = ../../utils/run_exercise-wifi-wired.py
+RUN_SCRIPT = ../../utils/run_exercise-bssid-based.py
 
 ifndef TOPO
 TOPO = topology.json
