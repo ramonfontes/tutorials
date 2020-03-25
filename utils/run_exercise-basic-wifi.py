@@ -25,8 +25,8 @@ from time import sleep
 from p4_mininet import P4AP, P4Station
 
 from mn_wifi.net import Mininet_wifi
-from mn_wifi.topo import Topo_WiFi
-from mn_wifi.cli import CLI_wifi
+from mn_wifi.topo import Topo
+from mn_wifi.cli import CLI
 
 from p4runtime_ap import P4RuntimeAP
 import p4runtime_lib.simple_controller
@@ -45,7 +45,7 @@ def configureP4AP(**ap_args):
                 P4RuntimeAP.__init__(self, *opts, **kwargs)
 
             def describe(self):
-                print "%s -> gRPC port: %d" % (self.name, self.grpc_port)
+                print("%s -> gRPC port: %d" % (self.name, self.grpc_port))
 
         return ConfiguredP4RuntimeAP
     else:
@@ -59,16 +59,16 @@ def configureP4AP(**ap_args):
                 P4AP.__init__(self, *opts, **kwargs)
 
             def describe(self):
-                print "%s -> Thrift port: %d" % (self.name, self.thrift_port)
+                print("%s -> Thrift port: %d" % (self.name, self.thrift_port))
 
         return ConfiguredP4AP
 
 
-class ExerciseTopo(Topo_WiFi):
+class ExerciseTopo(Topo):
     """ The mininet topology class for the P4 tutorial exercises.
     """
     def __init__(self, stations, aps, links, log_dir, bmv2_exe, pcap_dir, **opts):
-        Topo_WiFi.__init__(self, **opts)
+        Topo.__init__(self, **opts)
         sta_links = []
         ap_links = []
 
@@ -366,7 +366,7 @@ class ExerciseRunner:
             print(' for example run:  cat %s/s1-p4runtime-requests.txt' % self.log_dir)
             print('')
 
-        CLI_wifi(self.net)
+        CLI(self.net)
 
 
 def get_args():

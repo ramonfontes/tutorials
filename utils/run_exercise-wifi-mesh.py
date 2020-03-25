@@ -22,52 +22,15 @@
 import os, json, subprocess, argparse
 from time import sleep
 
-from mininet.term import makeTerm
-
-from p4_mininet import P4AP, P4Station, P4Host, P4Switch
+from p4_mininet import P4AP, P4Station
 
 from mn_wifi.net import Mininet_wifi
-from mn_wifi.topo import Topo
-from mn_wifi.cli import CLI
-
-from mn_wifi.link import wmediumd
-from mn_wifi.wmediumdConnector import interference
+from mn_wifi.topo import Topo_WiFi
+from mn_wifi.cli import CLI_wifi
 
 from p4runtime_ap import P4RuntimeAP
-from p4runtime_switch import P4RuntimeSwitch
 import p4runtime_lib.simple_controller
 
-
-def configureP4Switch(**ap_args):
-    """ Helper class that is called by mininet to initialize
-        the virtual P4 switches. The purpose is to ensure each
-        switch's thrift server is using a unique port.
-    """
-    if "sw_path" in ap_args and 'grpc' in ap_args['sw_path']:
-        # If grpc appears in the BMv2 switch target, we assume will start P4Runtime
-        class ConfiguredP4RuntimeSwitch(P4RuntimeSwitch):
-            def __init__(self, *opts, **kwargs):
-                kwargs.update(ap_args)
-                P4RuntimeSwitch.__init__(self, *opts, **kwargs)
-
-            def describe(self):
-                print "%s -> gRPC port: %d" % (self.name, int(self.grpc_port))
-
-        return ConfiguredP4RuntimeSwitch
-    else:
-        class ConfiguredP4Switch(P4Switch):
-            next_thrift_port = 9090
-            def __init__(self, *opts, **kwargs):
-                global next_thrift_port
-                kwargs.update(ap_args)
-                kwargs['thrift_port'] = ConfiguredP4Switch.next_thrift_port
-                ConfiguredP4Switch.next_thrift_port += 1
-                P4Switch.__init__(self, *opts, **kwargs)
-
-            def describe(self):
-                print "%s -> Thrift port: %d" % (self.name, self.thrift_port)
-
-        return ConfiguredP4Switch
 
 def configureP4AP(**ap_args):
     """ Helper class that is called by mininet to initialize
@@ -82,7 +45,7 @@ def configureP4AP(**ap_args):
                 P4RuntimeAP.__init__(self, *opts, **kwargs)
 
             def describe(self):
-                print "%s -> gRPC port: %d" % (self.name, int(self.grpc_port))
+                print "%s -> gRPC port: %d" % (self.name, self.grpc_port)
 
         return ConfiguredP4RuntimeAP
     else:
@@ -101,123 +64,74 @@ def configureP4AP(**ap_args):
         return ConfiguredP4AP
 
 
-class ExerciseTopo(Topo):
+class ExerciseTopo(Topo_WiFi):
     """ The mininet topology class for the P4 tutorial exercises.
     """
-    def __init__(self, stations, aps, hosts, switches, links,
-                 log_dir, bmv2_exe, pcap_dir, **opts):
-        Topo.__init__(self, **opts)
+    def __init__(self, stations, aps, links, log_dir, bmv2_exe, pcap_dir, **opts):
+        Topo_WiFi.__init__(self, **opts)
         sta_links = []
         ap_links = []
 
         # assumes station always comes first for station<-->ap links
         for link in links:
-            if (link['node2'][0] == 's' and link['node2'][1] == 't') \
-                    or link['node1'][0] == 'h':
+            if link['node2'][0] == 's':
                 sta_links.append(link)
             else:
                 ap_links.append(link)
 
-        if switches:
-            for switch, params in switches.iteritems():
-                if "program" in params:
-                    switchClass = configureP4Switch(
-                            sw_path=bmv2_exe,
-                            json_path=params["program"],
-                            log_console=True,
-                            pcap_dump=pcap_dir)
-                else:
-                    # add default ap
-                    switchClass = None
+        for ap, params in aps.iteritems():
+            if "program" in params:
+                apClass = configureP4AP(
+                        sw_path=bmv2_exe,
+                        json_path=params["program"],
+                        log_console=True,
+                        pcap_dump=pcap_dir)
+            else:
+                # add default ap
+                apClass = None
+            if int(ap[2:]) == 1:
+                x, y = 100, 100
+            elif int(ap[2:]) == 2:
+                x, y = 300, 100
+            elif int(ap[2:]) == 3:
+                x, y = 100, 300
+            elif int(ap[2:]) == 4:
+                x, y = 300, 300
 
-                if 'device_id' in params:
-                    device_id = params['device_id']
-                else:
-                    device_id = None
+            self.addAccessPoint(ap, log_file="%s/%s.log" % (log_dir, ap),
+                                position='%s,%s,0' % (x, y), cls=apClass)
 
-                if 'grpc_port' in params:
-                    grpc_port = params['grpc_port']
-                else:
-                    grpc_port = None
-
-                if 'thrift-port' in params:
-                    thrift_port = params['thrift-port']
-                else:
-                    thrift_port = None
-
-                self.addSwitch(switch, log_file="%s/%s.log" % (log_dir, switch),
-                               grpc_port=grpc_port, device_id=device_id,
-                               thrift_port=thrift_port, cls=switchClass)
-
-        if aps:
-            for ap, params in aps.iteritems():
-                if "program" in params:
-                    apClass = configureP4AP(
-                            sw_path=bmv2_exe,
-                            json_path=params["program"],
-                            log_console=True,
-                            pcap_dump=pcap_dir)
-                else:
-                    # add default ap
-                    apClass = None
-                if int(ap[2:]) == 1:
-                    x, y = 100, 300
-                elif int(ap[2:]) == 2:
-                    x, y = 500, 300
-
-                if 'device_id' in params:
-                    device_id = params['device_id']
-                else:
-                    device_id = None
-
-                if 'grpc_port' in params:
-                    grpc_port = params['grpc_port']
-                else:
-                    grpc_port = None
-
-                if 'thrift-port' in params:
-                    thrift_port = params['thrift-port']
-                else:
-                    thrift_port = None
-
-                self.addAccessPoint(ap, log_file="%s/%s.log" % (log_dir, ap),
-                                    position='%s,%s,0' % (x, y),
-                                    grpc_port=grpc_port, device_id=device_id,
-                                    thrift_port=thrift_port, cls=apClass,
-                                    passwd='123456789a', encrypt='wpa2',
-                                    ieee80211r='yes', mobility_domain='a1b2'
-                                    )
-
-        for sta in stations:
-            sta_num = int(sta[3:])
+        for link in sta_links:
+            sta_name = link['node2']
+            ap_name, sw_port = self.parse_ap_node(link['node1'])
+            sta_num = int(sta_name[3:])
             sta_ip = "10.0.%d.%d" % (sta_num, sta_num)
             sta_mac = '08:00:00:00:%02x:%s%s' % (sta_num, sta_num, sta_num)
-            self.addStation(str(sta), ip=sta_ip + '/24', mac=sta_mac,
-                            encrypt='wpa2',
-                            bgscan_threshold=-70,
-                            s_inverval=1,
-                            l_interval=2
-                            )
-
-        for host in hosts:
-            host_num = int(host[1:])
-            host_ip = "10.0.%d.%d" % (host_num, host_num)
-            host_mac = '08:00:00:00:%02x:%s%s' % (host_num, host_num, host_num)
-            if host_num == 3:
-                self.addHost(str(host), ip=host_ip + '/24', mac=host_mac, inNamespace=False)
-            else:
-                self.addHost(str(host), ip=host_ip + '/24', mac=host_mac)
-            for switch in switches:
-                switch_name = str(switch)
-                self.addLink(host, str(switch_name))
+            if int(ap_name[2:]) == 1 and sta_num == 1:
+                x, y = 80, 80
+            elif int(ap_name[2:]) == 1 and sta_num == 2:
+                x, y = 120, 80
+            elif int(ap_name[2:]) == 2 and sta_num == 3:
+                x, y = 280, 80
+            elif int(ap_name[2:]) == 2 and sta_num == 4:
+                x, y = 320, 80
+            self.addStation(sta_name, ip=sta_ip + '/24', mac=sta_mac,
+                            position='%s,%s,0' % (x, y))
+            self.addLink(sta_name, ap_name,
+                         delay=link['latency'], bw=link['bandwidth'])
 
         for link in ap_links:
             sw1_name, sw1_port = self.parse_ap_node(link['node1'])
             sw2_name, sw2_port = self.parse_ap_node(link['node2'])
+            if int(sw1_name[2:]) == 1 or int(sw1_name[2:]) == 2:
+                sw1_port-=1
             self.addLink(sw1_name, sw2_name,
-                         port1=sw1_port, port2=sw2_port)
+                         port1=sw1_port, port2=sw2_port,
+                         delay=link['latency'], bw=link['bandwidth'])
+
 
     def parse_ap_node(self, node):
+        assert(len(node.split('-')) == 2)
         ap_name, sw_port = node.split('-')
         try:
             sw_port = int(sw_port[1])
@@ -232,17 +146,13 @@ class ExerciseRunner:
             log_dir  : string   // directory for mininet log files
             pcap_dir : string   // directory for mininet switch pcap files
             quiet    : bool     // determines if we print logger messages
-
             hosts    : dict<string, dict> // mininet host names and their associated properties
             switches : dict<string, dict> // mininet switch names and their associated properties
             links    : list<dict>         // list of mininet link properties
-
             ap_json : string // json of the compiled p4 example
             bmv2_exe    : string // name or path of the p4 switch binary
-
             topo : Topo object   // The mininet topology instance
             net : Mininet object // The mininet instance
-
     """
     def logger(self, *items):
         if not self.quiet:
@@ -260,7 +170,6 @@ class ExerciseRunner:
                  ap_json, bmv2_exe='simple_switch', quiet=False):
         """ Initializes some attributes and reads the topology json. Does not
             actually run the exercise. Use run_exercise() for that.
-
             Arguments:
                 topo_file : string    // A json file which describes the exercise's
                                          mininet topology.
@@ -275,18 +184,8 @@ class ExerciseRunner:
         self.logger('Reading topology file.')
         with open(topo_file, 'r') as f:
             topo = json.load(f)
-        self.stations = None
-        self.hosts = None
-        self.aps = None
-        self.switches = None
-        if 'stations' in topo:
-            self.stations = topo['stations']
-        if 'aps' in topo:
-            self.aps = topo['aps']
-        if 'switches' in topo:
-            self.switches = topo['switches']
-        if 'hosts' in topo:
-            self.hosts = topo['hosts']
+        self.stations = topo['stations']
+        self.aps = topo['aps']
         self.links = self.parse_links(topo['links'])
 
         # Ensure all the needed directories exist and are directories
@@ -307,39 +206,19 @@ class ExerciseRunner:
         """
         # Initialize mininet with the topology specified by the config
         self.create_network()
-        self.net.plotGraph(max_x=700, max_y=700)
-        self.config_mobility()
         self.net.start()
         sleep(1)
 
         # some programming that must happen after the net has started
-        if self.net.stations:
-            self.program_stations()
-        if self.net.hosts:
-            self.program_hosts()
-        if self.net.aps:
-            self.program_aps()
-        if self.net.switches:
-            self.program_switches()
+        self.program_stations()
+        self.program_aps()
 
         # wait for that to finish. Not sure how to do this better
         sleep(1)
 
-        makeTerm(self.net.aps[1], cmd="bash -c 'python send.py ap2;'")
-        makeTerm(self.net.hosts[1], cmd="bash -c 'python receive.py;'")
-        makeTerm(self.net.stations[0], cmd="bash -c 'ping 10.0.2.2;'")
-
         self.do_net_cli()
         # stop right after the CLI is exited
-
-        os.system('pkill -f \"xterm -title\"')
         self.net.stop()
-
-    def config_mobility(self):
-        self.net.startMobility(time=0, repetitions=1)
-        self.net.mobility(self.net.stations[0], 'start', time=5, position='100.0,280.0,0.0')
-        self.net.mobility(self.net.stations[0], 'stop', time=95, position='600.0,280.0,0.0')
-        self.net.stopMobility(time=95)
 
     def parse_links(self, unparsed_links):
         """ Given a list of links descriptions of the form [node1, node2, latency, bandwidth]
@@ -363,12 +242,13 @@ class ExerciseRunner:
             if len(link) > 3:
                 link_dict['bandwidth'] = link[3]
 
+            if link_dict['node1'][0] == 's':
+                assert link_dict['node2'][0] == 'a', 'Stations should be connected to aps, not ' + str(link_dict['node2'])
             links.append(link_dict)
         return links
 
     def create_network(self):
         """ Create the mininet network object, and store it as self.net.
-
             Side effects:
                 - Mininet topology instance stored as self.topo
                 - Mininet instance stored as self.net
@@ -381,23 +261,16 @@ class ExerciseRunner:
             log_console=True,
             pcap_dump=self.pcap_dir)
 
-        defaultSwitchClass = configureP4Switch(
-            sw_path=self.bmv2_exe,
-            json_path=self.ap_json,
-            log_console=True,
-            pcap_dump=self.pcap_dir)
-
-        self.topo = ExerciseTopo(self.stations, self.aps, self.hosts, self.switches, self.links,
+        self.topo = ExerciseTopo(self.stations, self.aps, self.links,
                                  self.log_dir, self.bmv2_exe, self.pcap_dir)
 
         self.net = Mininet_wifi(topo=self.topo,
                                 station=P4Station,
-                                host=P4Host,
-                                switch=defaultSwitchClass,
                                 accessPoint=defaultapClass,
                                 controller=None,
-                                link=wmediumd,
-                                wmediumd_mode=interference
+                                # link=wmediumd,
+                                # wmediumd_mode=interference
+                                plot=True
                                 )
 
     def program_ap_p4runtime(self, ap_name, ap_dict):
@@ -412,7 +285,7 @@ class ExerciseRunner:
         with open(runtime_json, 'r') as sw_conf_file:
             outfile = '%s/%s-p4runtime-requests.txt' %(self.log_dir, ap_name)
             p4runtime_lib.simple_controller.program_switch(
-                addr='127.0.0.1:%d' % int(grpc_port),
+                addr='127.0.0.1:%d' % grpc_port,
                 device_id=device_id,
                 sw_conf_file=sw_conf_file,
                 workdir=os.getcwd(),
@@ -446,17 +319,6 @@ class ExerciseRunner:
             if 'runtime_json' in ap_dict:
                 self.program_ap_p4runtime(ap_name, ap_dict)
 
-    def program_switches(self):
-        """ This method will program each switch using the BMv2 CLI and/or
-            P4Runtime, depending if any command or runtime JSON files were
-            provided for the switches.
-        """
-        for ap_name, ap_dict in self.switches.iteritems():
-            if 'cli_input' in ap_dict:
-                self.program_switch_cli(ap_name, ap_dict)
-            if 'runtime_json' in ap_dict:
-                self.program_ap_p4runtime(ap_name, ap_dict)
-
     def program_stations(self):
         """ Execute any commands provided in the topology.json file on each Mininet host
         """
@@ -466,29 +328,15 @@ class ExerciseRunner:
                 for cmd in host_info["commands"]:
                     h.cmd(cmd)
 
-    def program_hosts(self):
-        """ Execute any commands provided in the topology.json file on each Mininet host
-        """
-        for host_name, host_info in self.hosts.items():
-            h = self.net.get(host_name)
-            if "commands" in host_info:
-                for cmd in host_info["commands"]:
-                    h.cmd(cmd)
-
     def do_net_cli(self):
         """ Starts up the mininet CLI and prints some helpful output.
-
             Assumes:
                 - A mininet instance is stored as self.net and self.net.start() has
                   been called.
         """
         for s in self.net.aps:
             s.describe()
-        for s in self.net.switches:
-            s.describe()
         for h in self.net.stations:
-            h.describe()
-        for h in self.net.hosts:
             h.describe()
         self.logger("Starting mininet-wifi CLI")
         # Generate a message that will be printed by the Mininet CLI to make
@@ -518,7 +366,7 @@ class ExerciseRunner:
             print(' for example run:  cat %s/s1-p4runtime-requests.txt' % self.log_dir)
             print('')
 
-        CLI(self.net)
+        CLI_wifi(self.net)
 
 
 def get_args():
@@ -547,4 +395,3 @@ if __name__ == '__main__':
                               args.ap_json, args.behavioral_exe, args.quiet)
 
     exercise.run_exercise()
-

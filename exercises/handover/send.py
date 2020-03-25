@@ -43,7 +43,7 @@ def pkt_callback(pkt):
 
             addr = "10.0.3.3"
             iface = get_if(sys.argv[1])
-            print "Sending BSSID/MAC to %s" % addr
+            print("Sending BSSID/MAC to %s" % addr)
             pkt = Ether(src=get_if_hwaddr(iface), dst='ff:ff:ff:ff:ff:ff')
             pkt = pkt / IP(dst=addr) / \
                   TCP(dport=1234, sport=random.randint(49152, 65535)) \
@@ -51,7 +51,7 @@ def pkt_callback(pkt):
             sendp(pkt, iface=iface, verbose=False)
 
 if len(sys.argv)<2:
-    print 'pass 1 arguments: <node>'
+    print('pass 1 arguments: <node>')
     exit(1)
 
 #os.system('cp run-code.sh.bkp run-code.sh')
