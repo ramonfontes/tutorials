@@ -27,8 +27,8 @@ from mininet.term import makeTerm
 from p4_mininet import P4AP, P4Station, P4Host, P4Switch
 
 from mn_wifi.net import Mininet_wifi
-from mn_wifi.topo import Topo_WiFi
-from mn_wifi.cli import CLI_wifi
+from mn_wifi.topo import Topo
+from mn_wifi.cli import CLI
 
 from mn_wifi.link import wmediumd
 from mn_wifi.wmediumdConnector import interference
@@ -101,12 +101,12 @@ def configureP4AP(**ap_args):
         return ConfiguredP4AP
 
 
-class ExerciseTopo(Topo_WiFi):
+class ExerciseTopo(Topo):
     """ The mininet topology class for the P4 tutorial exercises.
     """
     def __init__(self, stations, aps, hosts, switches, links,
                  log_dir, bmv2_exe, pcap_dir, **opts):
-        Topo_WiFi.__init__(self, **opts)
+        Topo.__init__(self, **opts)
         sta_links = []
         ap_links = []
 
@@ -518,7 +518,7 @@ class ExerciseRunner:
             print(' for example run:  cat %s/s1-p4runtime-requests.txt' % self.log_dir)
             print('')
 
-        CLI_wifi(self.net)
+        CLI(self.net)
 
 
 def get_args():
